@@ -1,11 +1,17 @@
 package com.reservation.tableproject.service;
 
+import com.reservation.tableproject.domain.partner.CustomPartnerDetails;
 import com.reservation.tableproject.domain.partner.Partner;
 import com.reservation.tableproject.domain.partner.PartnerRepository;
+import com.reservation.tableproject.dto.LoginRequestDto;
 import com.reservation.tableproject.dto.SignUpRequestDto;
+import com.reservation.tableproject.exception.EmailInvalidException;
 import com.reservation.tableproject.exception.PartnerAlreadyExistException;
-import com.reservation.tableproject.exception.UserAlreadyExistException;
+import com.reservation.tableproject.exception.PasswordInvalidException;
+import com.reservation.tableproject.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -38,5 +44,22 @@ public class PartnerService {
                 .build();
 
         partnerRepository.save(partner);
+    }
+
+    public String login(LoginRequestDto loginRequestDto) {
+        Partner partner = partnerRepository.findByEmail(loginRequestDto.getEmail())
+                .orElseThrow(() -> new EmailInvalidException("존재하지 않는 이메일 형식입니다."));
+
+        if(!passwordEncoder.matches(loginRequestDto.getPassword(), partner.getPassword())){
+            throw new PasswordInvalidException("비밀번호가 틀렸습니다.");
+        }
+
+        return JwtUtil.createToken(loginRequestDto.getEmail(), "ROLE_PARTNER");
+    }
+
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Partner partner = partnerRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Partner not found: " + username));
+        return new CustomPartnerDetails(partner);
     }
 }

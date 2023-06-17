@@ -1,12 +1,22 @@
 package com.reservation.tableproject.controller;
 
+import com.reservation.tableproject.dto.LoginRequestDto;
 import com.reservation.tableproject.dto.SignUpRequestDto;
 import com.reservation.tableproject.service.PartnerService;
 import com.reservation.tableproject.service.UserService;
+import com.reservation.tableproject.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 @Controller
 @RequiredArgsConstructor
@@ -34,5 +44,32 @@ public class MainController {
             partnerService.register(signUpRequestDto);
         }
         return "register_complete.html";
+    }
+
+    @GetMapping("/login")
+    public String moveToLoginPage(){
+        return "login.html";
+    }
+
+    /**
+     * 유저가 입력한 아이디 비밀번호를 바탕으로 토큰을 생성하고, 토큰을 쿠키에 포함 시킨 후 응답을 보냄
+     * @param loginRequestDto
+     * @param response
+     * @return
+     */
+    @PostMapping("/login")
+    public String login(LoginRequestDto loginRequestDto, HttpServletResponse response) {
+
+        String token;
+        if("user".equals(loginRequestDto.getUserType())){
+            token = userService.login(loginRequestDto);
+        }else{
+            token = partnerService.login(loginRequestDto);
+        }
+
+        Cookie cookie = CookieUtil.generateCookie(token);
+        response.addCookie(cookie);
+
+        return "login_complete";
     }
 }
